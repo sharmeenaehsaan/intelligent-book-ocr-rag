@@ -1,0 +1,63 @@
+# -------------------------
+# Secrets
+# -------------------------
+.env
+.env.*
+!.env.example
+
+# -------------------------
+# Python virtual environments
+# -------------------------
+bookocr_env/
+.venv/
+.venv-1/
+venv/
+env/
+
+# -------------------------
+# Python cache
+# -------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# -------------------------
+# IDE / editor files
+# -------------------------
+.vscode/
+.idea/
+
+# -------------------------
+# Generated OCR / RAG data
+# -------------------------
+knowledge_base/
+
+# -------------------------
+# Generated documents
+# -------------------------
+*.docx
+
+# -------------------------
+# Temporary outputs
+# -------------------------
+output/
+figures/
+tables/
+visualizations/
+
+# -------------------------
+# OS files
+# -------------------------
+.DS_Store
+Thumbs.db
+
+# -------------------------
+# Optional input images
+# Do not upload scanned book pages
+# -------------------------
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tif
+*.tiff
