@@ -1,63 +1,30 @@
-# -------------------------
 # Secrets
-# -------------------------
 .env
 .env.*
 !.env.example
 
-# -------------------------
-# Python virtual environments
-# -------------------------
+# Virtual environments
+rag_env/
 bookocr_env/
 .venv/
-.venv-1/
 venv/
-env/
 
-# -------------------------
 # Python cache
-# -------------------------
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyc
+*.pyo
 
-# -------------------------
-# IDE / editor files
-# -------------------------
+# Runtime/generated user data
+runtime/
+knowledge_base/
+
+# Generated documents
+*.docx
+
+# IDE
 .vscode/
 .idea/
 
-# -------------------------
-# Generated OCR / RAG data
-# -------------------------
-knowledge_base/
-
-# -------------------------
-# Generated documents
-# -------------------------
-*.docx
-
-# -------------------------
-# Temporary outputs
-# -------------------------
-output/
-figures/
-tables/
-visualizations/
-
-# -------------------------
 # OS files
-# -------------------------
 .DS_Store
 Thumbs.db
-
-# -------------------------
-# Optional input images
-# Do not upload scanned book pages
-# -------------------------
-*.jpg
-*.jpeg
-*.png
-*.bmp
-*.tif
-*.tiff

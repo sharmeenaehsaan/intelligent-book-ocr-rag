@@ -2,7 +2,6 @@ from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import traceback
-
 from PIL import Image, UnidentifiedImageError
 
 from src.preprocess import ImagePreprocessor
@@ -52,7 +51,7 @@ from src.knowledge_exporter import (
 
 ROOT_DIRECTORY = Path(
     r"C:\Users\sharmeen\OneDrive\Desktop"
-    r"\B"
+    r"\A"
 )
 
 
