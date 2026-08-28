@@ -1,41 +1,83 @@
-# Book OCR + RAG Question Answering System
+# Intelligent Book OCR + RAG
 
-An end-to-end OCR and Retrieval-Augmented Generation (RAG) project that converts scanned or photographed book pages into editable Microsoft Word documents and allows users to ask natural-language questions about the extracted content.
+An end-to-end Python application that converts scanned or photographed book pages into editable Microsoft Word documents and also allows users to ask natural-language questions about the extracted content.
 
-The system combines **PaddleOCR**, document-layout processing, **SentenceTransformers**, **FAISS**, hybrid retrieval, and the **Groq API** to generate answers grounded in the scanned pages.
+The project combines **PaddleOCR**, document-layout processing, **SentenceTransformers**, **FAISS**, hybrid retrieval, the **Groq API**, and a **Streamlit user interface**.
 
 ---
 
 ## Overview
 
-This project solves two related problems:
+This project supports two main workflows:
 
-1. Convert book-page images into structured, editable Word documents while preserving useful layout information such as headings, code, tables, and figures.
-2. Build a searchable knowledge base from the OCR output so users can ask questions and receive answers together with the source image and page.
+1. **Convert uploaded book-page images into an editable Word document**
+2. **Ask questions directly from uploaded book pages using OCR + RAG**
 
-The project uses a RAG pipeline rather than training a large language model from scratch.
+The Streamlit interface runs only the processing required for the option selected by the user.
+
+The system uses Retrieval-Augmented Generation (RAG) instead of training a large language model from scratch.
 
 ---
 
-## Features
+## Main Features
 
-- OCR extraction from photographed or scanned book pages
-- Full-page OCR plus overlapping-strip OCR for improved text recovery
-- Recursive folder processing
-- Automatic page ordering using image capture time when available
-- Heading, subheading, paragraph, code, and page-number classification
+- Upload one or multiple scanned or photographed book pages
+- Streamlit graphical interface
+- PaddleOCR text extraction
+- Full-page OCR plus overlapping-strip OCR
+- Layout classification for headings, subheadings, paragraphs, code, and page numbers
 - Table detection
 - Figure detection
 - Editable `.docx` generation
 - Structured OCR export to JSONL
 - Heading-aware text chunking
-- Local SentenceTransformer embeddings
+- SentenceTransformer embeddings
 - Local FAISS vector search
 - Hybrid semantic + lexical retrieval
-- Groq-powered answer generation
-- Source image and page references for answers
-- Support for multiple nested input folders
-- Local storage of OCR records, chunks, and vector indexes
+- Groq-powered question answering
+- Source image and page references
+- Continue asking questions from the **last processed upload**
+- Recursive folder processing through the original CLI workflow
+- Local storage of OCR records, chunks, and FAISS index
+
+---
+
+## Streamlit Application Flow
+
+```text
+WELCOME
+   │
+   ├── Upload New Images
+   │       │
+   │       ├── Convert to Word
+   │       │       └── OCR + layout + tables/figures + Word generation
+   │       │
+   │       └── Ask Questions
+   │               └── OCR + knowledge export + chunks + FAISS + chat
+   │
+   └── Ask From Last Processed Upload
+           └── Load existing FAISS index + chat
+```
+
+### Important Processing Behavior
+
+**Convert to Word**
+
+Runs only the OCR and Word-document pipeline.
+
+It does **not** rebuild the RAG knowledge base.
+
+**Ask Questions from new images**
+
+Runs OCR and the RAG preparation pipeline.
+
+It does **not** create a Word document.
+
+**Ask From Last Processed Upload**
+
+Loads the most recent existing FAISS index and opens the chat directly.
+
+It does **not** rerun OCR, chunking, embeddings, or Word generation.
 
 ---
 
@@ -43,84 +85,29 @@ The project uses a RAG pipeline rather than training a large language model from
 
 ```mermaid
 flowchart TD
-    A[Book Page Images] --> B[PaddleOCR]
-    B --> C[Layout Classification]
-    C --> D[Word Document Generation]
-    C --> E[Structured OCR Records]
-    E --> F[Chunking]
-    F --> G[SentenceTransformer Embeddings]
-    G --> H[FAISS Vector Index]
-    I[User Question] --> J[Hybrid Retrieval]
-    H --> J
-    J --> K[Relevant OCR Chunks]
-    K --> L[Groq LLM]
-    I --> L
-    L --> M[Answer + Source Image/Page]
+    A[Uploaded Book Page Images] --> B{User Choice}
+
+    B -->|Convert to Word| C[PaddleOCR]
+    C --> D[Layout Classification]
+    D --> E[Table + Figure Detection]
+    E --> F[Word Document Generation]
+    F --> G[Download DOCX]
+
+    B -->|Ask Questions| H[PaddleOCR]
+    H --> I[Layout Classification]
+    I --> J[Structured OCR Records]
+    J --> K[Chunking]
+    K --> L[SentenceTransformer Embeddings]
+    L --> M[FAISS Vector Index]
+    N[User Question] --> O[Hybrid Retrieval]
+    M --> O
+    O --> P[Relevant OCR Chunks]
+    P --> Q[Groq LLM]
+    N --> Q
+    Q --> R[Answer + Source Image/Page]
+
+    S[Last Processed Upload] --> M
 ```
-
-### Pipeline
-
-```text
-Images
-  ↓
-main.py
-  ↓
-Word documents + ocr_blocks.jsonl
-  ↓
-build_chunks.py
-  ↓
-chunks.jsonl
-  ↓
-build_index.py
-  ↓
-SentenceTransformer embeddings + FAISS
-  ↓
-ask.py
-  ↓
-Question → relevant OCR passages → Groq → answer + source
-```
-
----
-
-## Project Structure
-
-```text
-book-ocr-rag/
-├── main.py
-├── build_chunks.py
-├── build_index.py
-├── search_index.py
-├── ask.py
-├── requirements.txt
-├── .env.example
-├── .gitignore
-│
-├── src/
-│   ├── __init__.py
-│   ├── preprocess.py
-│   ├── ocr.py
-│   ├── layout.py
-│   ├── figure_detector.py
-│   ├── table_detector.py
-│   ├── word_generator.py
-│   ├── multi_page_word_generator.py
-│   ├── knowledge_exporter.py
-│   ├── chunker.py
-│   └── vector_index.py
-│
-├── knowledge_base/
-│   ├── ocr_blocks.jsonl
-│   ├── chunks.jsonl
-│   └── vector_index/
-│       ├── chunks.faiss
-│       ├── chunk_metadata.jsonl
-│       └── manifest.json
-│
-└── docs/
-    └── Book_OCR_RAG_Complete_Setup_and_User_Guide.docx
-```
-
-> `knowledge_base/`, `.env`, virtual environments, generated Word files, and source book images should normally be excluded from GitHub using `.gitignore`.
 
 ---
 
@@ -129,39 +116,74 @@ book-ocr-rag/
 | Component | Technology |
 |---|---|
 | Programming language | Python 3.11 |
-| OCR | PaddleOCR |
+| User interface | Streamlit |
+| OCR | PaddleOCR 2.10.0 |
+| OCR runtime | PaddlePaddle 2.6.2 |
 | Image processing | OpenCV |
+| Plotting/debug utilities | Matplotlib |
 | Word generation | python-docx |
 | Image metadata | Pillow |
 | Embeddings | SentenceTransformers |
 | Embedding model | `sentence-transformers/all-MiniLM-L6-v2` |
 | Vector search | FAISS |
-| Retrieval | Hybrid semantic + lexical retrieval |
+| Retrieval | Hybrid semantic + lexical |
 | LLM API | Groq |
 | LLM | `openai/gpt-oss-120b` |
 | Configuration | python-dotenv |
 
 ---
 
-## Installation
+# How to Run the Streamlit App
 
-### 1. Clone the repository
+This section is intended for a new user who downloads the project from GitHub.
 
-```bash
-git clone https://github.com/YOUR_USERNAME/book-ocr-rag.git
-cd book-ocr-rag
+## 1. Install Python
+
+Install **Python 3.11**.
+
+During installation on Windows, enable:
+
+```text
+Add Python to PATH
 ```
 
-Replace `YOUR_USERNAME` with your GitHub username.
-
-### 2. Create a virtual environment
-
-The project was developed using **Python 3.11**.
-
-#### Windows PowerShell
+Check the installation:
 
 ```powershell
-python -m venv bookocr_env
+python --version
+```
+
+---
+
+## 2. Clone the Repository
+
+Open PowerShell or the VS Code terminal:
+
+```powershell
+git clone https://github.com/sharmeenaehsaan/intelligent-book-ocr-rag.git
+cd intelligent-book-ocr-rag
+```
+
+If Git is not installed, the repository can also be downloaded as a ZIP from GitHub and extracted.
+
+---
+
+## 3. Create a Virtual Environment
+
+```powershell
+python -m venv rag_env
+```
+
+Activate it:
+
+```powershell
+.\rag_env\Scripts\Activate.ps1
+```
+
+The terminal should begin with:
+
+```text
+(rag_env)
 ```
 
 If PowerShell blocks activation:
@@ -170,86 +192,98 @@ If PowerShell blocks activation:
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
 ```
 
-Activate the environment:
+---
+
+## 4. Upgrade Installation Tools
 
 ```powershell
-.\bookocr_env\Scripts\Activate.ps1
-```
-
-### 3. Install dependencies
-
-```powershell
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-If the RAG packages are not yet included in `requirements.txt`, install them with:
-
-```powershell
-pip install sentence-transformers faiss-cpu groq python-dotenv
+python -m pip install --upgrade pip setuptools wheel
 ```
 
 ---
 
-## Environment Configuration
+## 5. Install CPU PyTorch
 
-Create a `.env` file in the project root.
+```powershell
+python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+```
 
-You can copy `.env.example` and rename the copy to `.env`.
+---
+
+## 6. Install Project Dependencies
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+---
+
+## 7. Configure the Groq API Key
+
+Create a file named exactly:
+
+```text
+.env
+```
+
+in the project root.
+
+Add:
 
 ```env
 GROQ_API_KEY=YOUR_GROQ_API_KEY_HERE
 GROQ_MODEL=openai/gpt-oss-120b
-
 TOP_K=5
 MIN_SIMILARITY=0.30
 MAX_CONTEXT_CHUNKS=3
 ```
 
-### Important
+Each user should use their own Groq API key.
 
-Never commit your real `.env` file or API key to GitHub.
-
-The public repository should contain only `.env.example`.
+Never publish the real `.env` file on GitHub.
 
 ---
 
-## Preparing Input Images
+## 8. Streamlit Configuration
 
-The system can process one folder or a recursively nested folder structure.
-
-Example:
+The repository includes:
 
 ```text
-World/
-├── world_page_1.jpg
-├── world_page_2.jpg
-│
-├── India/
-│   ├── india_page_1.jpg
-│   ├── india_page_2.jpg
-│   │
-│   └── Kashmir/
-│       ├── kashmir_page_1.jpg
-│       └── kashmir_page_2.jpg
-│
-└── France/
-    ├── france_page_1.jpg
-    └── france_page_2.jpg
+.streamlit/config.toml
 ```
 
-Each folder is processed independently.
+with:
+
+```toml
+[server]
+fileWatcherType = "none"
+```
+
+---
+
+## 9. Start the Application
+
+With `rag_env` activated:
+
+```powershell
+python -m streamlit run streamlit_app.py
+```
+
+The application normally opens automatically in the browser.
+
+If it does not, open:
 
 ```text
-World/                  → World.docx
-World/India/            → India.docx
-World/India/Kashmir/    → Kashmir.docx
-World/France/           → France.docx
+http://localhost:8501
 ```
 
-Images inside child folders are not mixed into the parent folder's Word document.
+---
 
-### Supported image formats
+## 10. Using the Application
+
+### Upload New Images
+
+Upload one or more supported page images:
 
 ```text
 .jpg
@@ -260,286 +294,191 @@ Images inside child folders are not mixed into the parent folder's Word document
 .tiff
 ```
 
----
+Then choose one of the following actions.
 
-## Configure the Input Folder
+### Convert to Word
 
-Open `main.py` and change `ROOT_DIRECTORY` to the folder containing the image collection.
-
-```python
-ROOT_DIRECTORY = Path(
-    r"C:\Users\YourName\Desktop\World"
-)
+```text
+Images
+  ↓
+Preprocessing
+  ↓
+OCR
+  ↓
+Layout Classification
+  ↓
+Table + Figure Detection
+  ↓
+Word Generation
+  ↓
+Download DOCX
 ```
 
-Only the root path normally needs to be changed before processing a new collection.
+The RAG knowledge base is **not replaced** when the user only converts images to Word.
+
+### Ask Questions
+
+```text
+Images
+  ↓
+Preprocessing
+  ↓
+OCR
+  ↓
+Layout Classification
+  ↓
+Knowledge Export
+  ↓
+Chunking
+  ↓
+SentenceTransformer Embeddings
+  ↓
+FAISS Index
+  ↓
+Chat
+```
+
+No Word document is generated in this path.
+
+The newly processed images become the **last processed question-answering upload**.
 
 ---
 
-## Running the Complete Pipeline
+## 11. Ask From the Last Processed Upload
 
-For a new or modified image collection, run the following files in order.
+Choose:
 
-### Step 1 — OCR and Word Generation
+```text
+Ask From Last Processed Upload
+```
+
+This loads the existing knowledge base and FAISS index.
+
+It does not rerun OCR, preprocessing, Word generation, chunking, embedding creation, or FAISS index building.
+
+---
+
+## 12. Asking Questions
+
+Type a question in the chat box.
+
+Example:
+
+```text
+What is Swing used for?
+```
+
+The system performs hybrid retrieval, selects relevant OCR chunks, sends the question plus retrieved context to Groq, and returns an answer with source image/page information.
+
+---
+
+## 13. Start the App Later
+
+After the one-time installation:
+
+```powershell
+cd path\to\intelligent-book-ocr-rag
+.\rag_env\Scripts\Activate.ps1
+python -m streamlit run streamlit_app.py
+```
+
+If `run_app.bat` is included and the environment is named `rag_env`, a Windows user can also double-click:
+
+```text
+run_app.bat
+```
+
+---
+
+## Original Command-Line Workflow
+
+The original CLI workflow remains available:
 
 ```powershell
 python main.py
-```
-
-This stage:
-
-- reads the images
-- sorts them by capture time when available
-- performs OCR
-- classifies text blocks
-- detects tables and figures
-- generates Word documents
-- exports structured OCR records
-
-Main knowledge output:
-
-```text
-knowledge_base/ocr_blocks.jsonl
-```
-
-Example terminal output:
-
-```text
-Knowledge records saved: 290
-Knowledge file:
-C:\...\book_to_word\knowledge_base\ocr_blocks.jsonl
-```
-
-### Step 2 — Build RAG Chunks
-
-```powershell
 python build_chunks.py
-```
-
-This combines related OCR blocks into larger passages suitable for retrieval.
-
-Output:
-
-```text
-knowledge_base/chunks.jsonl
-```
-
-Example:
-
-```text
-OCR records read: 290
-Chunks created: 20
-```
-
-### Step 3 — Build Embeddings and FAISS Index
-
-```powershell
 python build_index.py
-```
-
-This stage loads the SentenceTransformer model, creates embeddings, normalizes them, and stores them in FAISS.
-
-Outputs:
-
-```text
-knowledge_base/vector_index/
-├── chunks.faiss
-├── chunk_metadata.jsonl
-└── manifest.json
-```
-
-The embedding model may be downloaded automatically on the first run.
-
-### Step 4 — Ask Questions
-
-```powershell
 python ask.py
 ```
 
-Example:
-
-```text
-Question: What is the advantage of interactive mode?
-
-Retrieved context:
-  1. i5344603525.jpg | page 9 | ...
-
-ANSWER
-The advantage of interactive mode is that you can obtain help
-on Python constructs that are not objects.
-
-Sources:
-1. i5344603525.jpg — Page 9
-```
-
-Type `exit` to close the question-answering program.
-
----
-
-## Testing Retrieval Without the LLM
+Use:
 
 ```powershell
 python search_index.py
 ```
 
-This performs local retrieval without sending a request to Groq and is useful for checking whether the correct OCR chunks are being retrieved.
-
----
-
-## How Retrieval Works
-
-### Semantic Search
-
-The question and OCR chunks are converted into embeddings using:
-
-```text
-sentence-transformers/all-MiniLM-L6-v2
-```
-
-FAISS searches for chunks whose embeddings are semantically similar to the question.
-
-### Lexical Search
-
-Exact words and phrases from the question are also matched against chunk text. This helps with titles, names, headings, programming terms, and exact phrases.
-
-### Hybrid Ranking
-
-The semantic and lexical scores are combined to rank the most relevant chunks. Only the strongest retrieved passages are sent to the LLM.
-
----
-
-## RAG Answer Generation
-
-```text
-User Question
-      ↓
-SentenceTransformer
-      ↓
-FAISS + lexical retrieval
-      ↓
-Top relevant OCR chunks
-      ↓
-Groq API
-      ↓
-Final answer
-      ↓
-Source image + page
-```
-
-The LLM is instructed to answer only from the supplied OCR context. If sufficient information is not present, the system should say that it could not find enough information in the scanned pages.
-
----
-
-## Output Files
-
-### Word Documents
-
-Word documents are saved inside the same folders as their input images.
-
-```text
-World/
-├── page_1.jpg
-├── page_2.jpg
-└── World.docx
-```
-
-### OCR Knowledge Records
-
-`knowledge_base/ocr_blocks.jsonl` contains structured information such as OCR text, source image, folder, page number, block number, block type, confidence, coordinates, and capture time.
-
-### RAG Chunks
-
-`knowledge_base/chunks.jsonl` contains larger searchable passages together with source metadata.
-
-### Vector Index
-
-`knowledge_base/vector_index/` contains the FAISS index and metadata used during retrieval.
-
----
-
-## When to Rebuild the Pipeline
-
-| Situation | Commands |
-|---|---|
-| Ask more questions from the same data | `python ask.py` |
-| Add or replace page images | `main.py → build_chunks.py → build_index.py → ask.py` |
-| Change chunking logic | `build_chunks.py → build_index.py → ask.py` |
-| Change only retrieval logic | Usually `python ask.py` |
-| Process a different image collection | Change `ROOT_DIRECTORY`, then rebuild the full pipeline |
-
----
-
-## OCR Quality Recommendations
-
-- Photograph the full page
-- Keep the camera directly above the page
-- Use bright and even lighting
-- Avoid shadows
-- Avoid motion blur
-- Keep pages as flat as possible
-- Use high-resolution original images
-- Avoid compressed social-media copies
-- Do not crop important text, tables, diagrams, or page numbers
-
----
-
-## Limitations
-
-- OCR accuracy depends heavily on image quality.
-- Complex mathematical equations can still be misread.
-- Code containing unusual symbols may contain OCR errors.
-- Very curved, dark, blurry, or low-resolution pages reduce recognition quality.
-- Incorrect OCR can affect retrieval accuracy.
-- The current final answer generator requires internet access.
-- Groq API availability, models, and usage limits may change.
-- Visual questions about diagrams or objects are not yet fully handled by the text-only RAG pipeline.
-- The current terminal interface is functional but not yet a full graphical chat application.
+to test retrieval without Groq.
 
 ---
 
 ## Privacy and Security
 
-The complete OCR output, chunks, embeddings, FAISS index, and source metadata are stored locally.
-
-When `ask.py` is used, selected relevant OCR passages and the user's question are sent to the configured Groq API for final answer generation.
-
-Do not commit the following to a public repository unless you intentionally want to publish them:
+Never commit:
 
 ```text
 .env
+rag_env/
 bookocr_env/
-.venv/
 knowledge_base/
-source book images
+runtime/
+__pycache__/
+private source book images
 generated Word documents
 ```
 
 ---
 
-## Future Improvements
+## Troubleshooting
 
-- Streamlit or web-based chat interface
-- Conversation memory
-- Multimodal question answering for diagrams and figures
-- Local LLM mode without an external API
-- Source-image preview
-- Highlighting the exact source region used for an answer
-- Cross-page context handling
-- Retrieval reranking
-- Improved mathematical OCR
-- Stronger code reconstruction
-- Automatic incremental indexing
-- Resume/checkpoint support for large OCR jobs
+### Check the active Python environment
+
+```powershell
+python -c "import sys; print(sys.executable)"
+```
+
+The path should point to:
+
+```text
+...\rag_env\Scripts\python.exe
+```
+
+### PowerShell activation issue
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+```
+
+### `.env` not found
+
+Make sure the file is directly in the project root and is named exactly `.env`, not `.env.txt`.
+
+### No previous upload available
+
+Process a new image set using **Ask Questions** first.
 
 ---
 
-## Detailed Setup Guide
+## Limitations
 
-A full beginner-friendly Windows setup guide can be included in:
+- OCR accuracy depends on image quality.
+- Mathematical equations and unusual symbols may be misread.
+- Incorrect OCR can reduce retrieval quality.
+- Groq question answering requires internet access.
+- The current RAG pipeline is text-based rather than full visual reasoning.
+- Only the most recently prepared question-answering upload is retained for the Streamlit previous-upload workflow.
 
-```text
-docs/Book_OCR_RAG_Complete_Setup_and_User_Guide.docx
-```
+---
+
+## Future Improvements
+
+- Conversation memory
+- Multimodal question answering
+- Source-image preview
+- Exact source-region highlighting
+- Local LLM mode
+- Cross-page context handling
+- Incremental indexing
+- Resume/checkpoint support
 
 ---
 
@@ -553,4 +492,4 @@ MCA graduate interested in Machine Learning, Artificial Intelligence, Deep Learn
 
 ## Disclaimer
 
-This project is intended for educational, research, and document-processing use. Ensure that you have permission to process and store the source documents used with the system.
+This project is intended for educational, research, and document-processing use. Ensure that you have permission to process, store, and share the source documents used with the system.
